@@ -33,7 +33,7 @@ class VQVAE(nn.Module):
         self.up_sample = list(reversed(self.down_sample))
         
         ##################### Encoder ######################
-        self.encoder_conv_in = nn.Conv2d(im_channels, self.down_channels[0], kernel_size=3, padding=(1, 1))
+        self.encoder_conv_in = nn.Conv2d(im_channels, self.down_channels[0], kernel_size=3, stride=1, padding=(1, 1))
         
         # Downblock + Midblock
         self.encoder_layers = nn.ModuleList([])
