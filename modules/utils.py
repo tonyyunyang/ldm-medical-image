@@ -21,3 +21,12 @@ def drop_image_condition(image_condition, im, im_drop_prob):
         return image_condition * im_drop_mask
     else:
         return image_condition
+    
+    
+def validate_image_config(condition_config):
+    assert 'image_condition_config' in condition_config, \
+        "Image conditioning desired but image condition config missing"
+    assert 'image_condition_input_channels' in condition_config['image_condition_config'], \
+        "image_condition_input_channels missing in image condition config"
+    assert 'image_condition_output_channels' in condition_config['image_condition_config'], \
+        "image_condition_output_channels missing in image condition config"

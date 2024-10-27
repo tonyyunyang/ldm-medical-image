@@ -112,10 +112,13 @@ class Unet(nn.Module):
             im_cond = cond_input['image']
             im_cond = torch.nn.functional.interpolate(im_cond, size=x.shape[-2:])
             im_cond = self.cond_conv_in(im_cond)
+            # print(f"im_cond shape: {im_cond.shape}")
+            # print(f"x shape: {x.shape}")
             assert im_cond.shape[-2:] == x.shape[-2:]
             x = torch.cat([x, im_cond], dim=1)
             # B x (C+N) x H x W
             out = self.conv_in_concat(x)
+            # print(f"out shape: {out.shape}")
             #####################################
         else:
             # B x C x H x W

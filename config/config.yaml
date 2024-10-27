@@ -58,8 +58,8 @@ train_params:
   commitment_beta: 0.25
   perceptual_weight: 1.0
   kl_weight: 0.000005
-  ldm_epochs: 100
-  autoencoder_epochs: 120
+  ldm_epochs: 1
+  autoencoder_epochs: 1
   num_samples: 1
   num_grid_rows: 1
   ldm_lr: 0.000005
@@ -70,6 +70,7 @@ train_params:
   vae_latent_dir_name: 'vae_latents'
   vqvae_latent_dir_name: 'vqvae_latents'
   ldm_ckpt_name: 'ddpm_ckpt.pth'
+  ldm_cond_ckpt_name: 'ddpm_cond_ckpt.pth'
   vqvae_autoencoder_ckpt_name: 'vqvae_autoencoder_ckpt.pth'
   vae_autoencoder_ckpt_name: 'vae_autoencoder_ckpt.pth'
   vqvae_discriminator_ckpt_name: 'vqvae_discriminator_ckpt.pth'
