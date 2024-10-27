@@ -30,6 +30,9 @@ def train(config_path):
     diffusion_model_config = config['ldm_params']
     autoencoder_model_config = config['autoencoder_params']
     train_config = config['train_params']
+
+    # Set the desired seed value #
+    seed = train_config['seed']
     
     # Create the noise scheduler
     scheduler = LinearNoiseScheduler(num_timesteps=diffusion_config['num_timesteps'],

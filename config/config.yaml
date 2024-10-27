@@ -38,7 +38,7 @@ autoencoder_params:
 
 train_params:
   seed : 42
-  task_name: 'test_try2'
+  task_name: 'test_try'
   leave_out_subjects: 10
   ldm_batch_size: 16
   autoencoder_batch_size: 12
