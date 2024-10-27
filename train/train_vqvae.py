@@ -15,6 +15,46 @@ import matplotlib.pyplot as plt
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
+def visualize_fixed_samples(model, fixed_samples, device, task_name, epoch_idx):
+    model.eval()
+    with torch.no_grad():
+        # Get reconstructions for fixed samples
+        fixed_samples = fixed_samples.to(device)
+        reconstructed = model(fixed_samples)[0]
+        
+        # Move tensors to CPU for visualization
+        fixed_samples = fixed_samples.cpu()
+        reconstructed = reconstructed.cpu()
+        
+        # Create figure
+        n_samples = fixed_samples.shape[0]
+        fig, axes = plt.subplots(2, n_samples, figsize=(n_samples * 3, 6))
+        
+        # Plot original images
+        for i in range(n_samples):
+            axes[0, i].imshow((fixed_samples[i].squeeze() + 1) * 127.5, cmap='gray')
+            axes[0, i].set_title(f'Test Original {i+1}')
+            axes[0, i].axis('off')
+        
+        # Plot reconstructed images
+        for i in range(n_samples):
+            axes[1, i].imshow((reconstructed[i].squeeze() + 1) * 127.5, cmap='gray')
+            axes[1, i].set_title(f'Test Recon {i+1}')
+            axes[1, i].axis('off')
+        
+        plt.tight_layout()
+        
+        # Create directory if it doesn't exist
+        eval_samples_dir = os.path.join(task_name, 'fixed_samples_progress')
+        if not os.path.exists(eval_samples_dir):
+            os.makedirs(eval_samples_dir)
+        
+        plt.savefig(os.path.join(eval_samples_dir, f'reconstruction_epoch_{epoch_idx}.pdf'))
+        plt.close()
+    
+    model.train()
+
+
 def train(config_path):
     # Read the config file #
     with open(config_path, 'r') as file:
@@ -49,6 +89,12 @@ def train(config_path):
     train_dataset = ImageDataset(train_indices, dataset_config['im_path'], data_indices_json, 'vqvae')
 
     train_dataloader = DataLoader(train_dataset, batch_size=train_config['autoencoder_batch_size'], shuffle=True)
+
+    # Get fixed samples from test set
+    num_fixed_samples = 8
+    fixed_test_dataset = ImageDataset(test_indices, dataset_config['im_path'], data_indices_json, 'vqvae')
+    fixed_samples_loader = DataLoader(fixed_test_dataset, batch_size=num_fixed_samples, shuffle=False)
+    fixed_samples = next(iter(fixed_samples_loader)).float()
     
     # Create output directories
     if not os.path.exists(train_config['task_name']):
@@ -98,22 +144,6 @@ def train(config_path):
             # Fetch autoencoders output(reconstructions)
             model_output = model(im)
             output, z, quantize_losses = model_output
-            
-            # # Image Saving Logic
-            # if step_count % image_save_steps == 0 or step_count == 1:
-            #     sample_size = min(8, im.shape[0])
-            #     save_output = torch.clamp(output[:sample_size], -1., 1.).detach().cpu()
-            #     save_output = ((save_output + 1) / 2)
-            #     save_input = ((im[:sample_size] + 1) / 2).detach().cpu()
-                
-            #     grid = make_grid(torch.cat([save_input, save_output], dim=0), nrow=sample_size)
-            #     img = torchvision.transforms.ToPILImage()(grid)
-            #     if not os.path.exists(os.path.join(train_config['task_name'],'vqvae_autoencoder_samples')):
-            #         os.mkdir(os.path.join(train_config['task_name'], 'vqvae_autoencoder_samples'))
-            #     img.save(os.path.join(train_config['task_name'],'vqvae_autoencoder_samples',
-            #                           'current_autoencoder_sample_{}.png'.format(img_save_count)))
-            #     img_save_count += 1
-            #     img.close()
 
             # Image Saving Logic
             if step_count % image_save_steps == 0 or step_count == 1:
@@ -128,13 +158,13 @@ def train(config_path):
                 
                 # Plot original images on top row
                 for i in range(n_samples):
-                    axes[0, i].imshow(save_input[i].squeeze() * 255.0, cmap='gray')
+                    axes[0, i].imshow((save_input[i].squeeze() + 1) * 127.5, cmap='gray')
                     axes[0, i].set_title(f'Original {i+1}')
                     axes[0, i].axis('off')
                 
                 # Plot reconstructed images on bottom row
                 for i in range(n_samples):
-                    axes[1, i].imshow(save_output[i].squeeze() * 255.0, cmap='gray')
+                    axes[1, i].imshow((save_output[i].squeeze() + 1) * 127.5, cmap='gray')
                     axes[1, i].set_title(f'Reconstructed {i+1}')
                     axes[1, i].axis('off')
                 
@@ -219,6 +249,9 @@ def train(config_path):
                          np.mean(recon_losses),
                          np.mean(perceptual_losses),
                          np.mean(codebook_losses)))
+            
+        # Visualize fixed samples after each epoch
+        visualize_fixed_samples(model, fixed_samples, device, train_config['task_name'], epoch_idx)
         
         torch.save(model.state_dict(), os.path.join(train_config['task_name'],
                                                     train_config['vqvae_autoencoder_ckpt_name']))

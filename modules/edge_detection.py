@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from scipy import ndimage
 
 def scale_data(data):
     min_val = data.min()
@@ -9,8 +10,11 @@ def scale_data(data):
     if max_val == min_val:
         return np.zeros_like(data, dtype=np.uint8)
     
-    scaled = ((data - min_val) * (255.0 / (max_val - min_val))).astype(np.uint8)
-    return scaled
+    scaled = (data - min_val) * (255.0 / (max_val - min_val))
+
+    normalized = (scaled / 127.5) - 1
+
+    return normalized
 
 def detect_edges(data):
     # Normalize the data
@@ -41,5 +45,39 @@ def detect_edges(data):
     
     # 6. Apply mask to remove edges in dark regions
     edges_advanced = edges_advanced * mask
+
+    edges_advanced = edges_advanced / 255
     
     return edges_advanced
+
+
+def scale_semantic_map(data: np.ndarray, target_resolution: tuple) -> np.ndarray:
+    # Quantize to integers
+    quantized_data = np.round(data).astype(np.int32)
+    
+    # Check for negative values
+    if np.any(quantized_data < 0):
+        raise ValueError("Quantized data contains negative values")
+    
+    # Calculate zoom factors
+    if len(data.shape) == 3:
+            zoom_factors = (target_resolution[0] / data.shape[0],
+                        target_resolution[1] / data.shape[1],
+                        1)  # Don't resize the channel dimension
+    elif len(data.shape) == 2:
+        zoom_factors = (target_resolution[0] / data.shape[0],
+                    target_resolution[1] / data.shape[1])
+    else:
+        raise ValueError(f"Unexpected input dimensions: {len(data.shape)}. Expected 2 or 3.")
+
+    
+    # Resize using zoom and round to integers
+    resized_data = ndimage.zoom(quantized_data, zoom_factors, order=0)  # order=0 for nearest neighbor
+    resized_data = np.round(resized_data).astype(np.uint8)
+
+    # Check for minimum number of unique values
+    unique_values = np.unique(resized_data)
+    if len(unique_values) > 4:
+        raise ValueError(f"After quantization, data contains {len(unique_values)} unique values. Expected no more than 4.")
+    
+    return resized_data

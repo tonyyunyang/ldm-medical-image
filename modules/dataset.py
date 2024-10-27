@@ -116,114 +116,20 @@ class ImageDataset(Dataset):
         try:
             file_path = self._get_file_path(subject_id)
             with h5py.File(file_path, 'r') as h5_file:
+
                 if self.stage == 'vqvae':
                     image = torch.from_numpy(h5_file['images'][sample_idx]).unsqueeze(0)
-                    return image/255.0
+                    return image
                 
                 else:  # diffusion stage
                     image = torch.from_numpy(h5_file['images'][sample_idx]).unsqueeze(0)
                     edge = torch.from_numpy(h5_file['edges'][sample_idx])
-                    semantic_map = torch.from_numpy(h5_file['semantic_maps'][sample_idx])
-                    return image/255.0, edge, semantic_map
+                    semantic_map = h5_file['semantic_maps'][sample_idx]
+                    semantic_map_one_hot = np.eye(4)[semantic_map]
+                    semantic_map_one_hot = torch.from_numpy(semantic_map_one_hot).permute(2, 0, 1)
+                    return image, edge, semantic_map_one_hot
                     
         except Exception as e:
             print(f"Error details for subject {subject_id}, sample {sample_idx}: {str(e)}")
             raise RuntimeError(f"Error loading data for subject {subject_id}, sample {sample_idx}") from e
-
-
-# class ImageDataset(Dataset):
-#     """A dataset class for loading and managing image data from HDF5 files.
-    
-#     Attributes:
-#         data_tuples: List of (subject_id, sample_idx) tuples
-#         data_dir: Directory containing the HDF5 files
-#         json_data: Dictionary containing metadata for each subject
-#         preload_subjects: Whether to preload all files into memory
-#         stage: Processing stage ('vqvae' or 'diffusion')
-#     """
-    
-#     VALID_STAGES = {'vqvae', 'diffusion'}
-    
-#     def __init__(
-#         self,
-#         data_tuples: List[Tuple[str, int]],
-#         data_dir: str,
-#         json_data: Dict,
-#         preload_subjects: bool = False,
-#         stage: str = 'vqvae'
-#     ) -> None:
         
-#         if not os.path.isdir(data_dir):
-#             raise ValueError(f"Directory not found: {data_dir}")
-        
-#         if stage not in self.VALID_STAGES:
-#             raise ValueError(f"Invalid stage: {stage}. Must be one of {self.VALID_STAGES}")
-            
-#         self.data_tuples = data_tuples
-#         self.data_dir = data_dir
-#         self.json_data = json_data
-#         self.preload_subjects = preload_subjects
-#         self.stage = stage
-        
-#         # Initialize file handlers dictionary if preloading
-#         self.file_handlers: Dict[str, h5py.File] = {}
-#         if preload_subjects:
-#             self._preload_files()
-    
-#     def _preload_files(self) -> None:
-#         """Preloads all unique subject files into memory."""
-#         unique_subjects = {t[0] for t in self.data_tuples}
-#         for subject_id in unique_subjects:
-#             try:
-#                 file_path = self._get_file_path(subject_id)
-#                 self.file_handlers[subject_id] = h5py.File(file_path, 'r')
-#             except Exception as e:
-#                 self.close_files()  # Clean up on error
-#                 raise RuntimeError(f"Failed to preload file for subject {subject_id}") from e
-    
-#     def _get_file_path(self, subject_id: str) -> str:
-#         """Gets the full file path for a subject."""
-#         if subject_id not in self.json_data:
-#             raise KeyError(f"Subject ID not found in json_data: {subject_id}")
-#         return os.path.join(self.data_dir, self.json_data[subject_id]['file_name'])
-    
-#     def _file_handler(self, subject_id: str) -> h5py.File:
-#         """Context manager for handling HDF5 files."""
-#         if self.preload_subjects:
-#             return self.file_handlers[subject_id]
-#         else:
-#             file_path = self._get_file_path(subject_id)
-#             with h5py.File(file_path, 'r') as f:
-#                 return f
-    
-#     def __len__(self) -> int:
-#         return len(self.data_tuples)
-    
-#     def __getitem__(self, idx: int) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
-#         subject_id, sample_idx = self.data_tuples[idx]
-        
-#         try:
-#             with self._file_handler(subject_id) as h5_file:
-#                 if self.stage == 'vqvae':
-#                     image = torch.from_numpy(h5_file['images'][sample_idx]).unsqueeze(0) 
-#                     # print(image.size())
-#                     return image
-                
-#                 else:  # diffusion stage
-#                     image = torch.from_numpy(h5_file['images'][sample_idx]).unsqueeze(0)
-#                     edge = torch.from_numpy(h5_file['edges'][sample_idx])
-#                     semantic_map = torch.from_numpy(h5_file['semantic_maps'][sample_idx])
-#                     return image, edge, semantic_map
-                    
-#         except Exception as e:
-#             raise RuntimeError(f"Error loading data for subject {subject_id}, sample {sample_idx}") from e
-    
-#     def close_files(self) -> None:
-#         """Closes all open file handlers."""
-#         for handler in self.file_handlers.values():
-#             handler.close()
-#         self.file_handlers.clear()
-    
-#     def __del__(self) -> None:
-#         """Ensures proper cleanup when the dataset object is deleted."""
-#         self.close_files()
