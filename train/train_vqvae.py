@@ -1,7 +1,6 @@
 import yaml
 import torch
 import random
-import torchvision
 import os
 import numpy as np
 from tqdm import tqdm
@@ -10,7 +9,6 @@ from models.lpips import LPIPS
 from models.discriminator import Discriminator
 from torch.utils.data.dataloader import DataLoader
 from torch.optim import Adam
-from torchvision.utils import make_grid
 from modules.dataset import split_subject_data, read_json_file, ImageDataset
 import matplotlib.pyplot as plt
 
@@ -25,6 +23,7 @@ def train(config_path):
         except yaml.YAMLError as exc:
             print(exc)
     print(config)
+    ########################
     
     dataset_config = config['dataset_params']
     autoencoder_config = config['autoencoder_params']
@@ -40,8 +39,7 @@ def train(config_path):
     #############################
     
     # Create the model and dataset #
-    model = VQVAE(im_channels=dataset_config['im_channels'],
-                  model_config=autoencoder_config).to(device)
+    model = VQVAE(im_channels=dataset_config['im_channels'], model_config=autoencoder_config).to(device)
     
     # Create the dataset
     data_indices_json = read_json_file(os.path.join(dataset_config['im_path'], 'dataset_index_mapping.json'))
@@ -60,8 +58,10 @@ def train(config_path):
 
     # L1/L2 loss for Reconstruction
     recon_criterion = torch.nn.MSELoss()
+    # recon_criterion = torch.nn.L1Loss()
     # Disc Loss can even be BCEWithLogits
     disc_criterion = torch.nn.MSELoss()
+    # disc_criterion = torch.nn.BCEWithLogitsLoss()
     
     # No need to freeze lpips as lpips.py takes care of that
     lpips_model = LPIPS().eval().to(device)
@@ -128,13 +128,13 @@ def train(config_path):
                 
                 # Plot original images on top row
                 for i in range(n_samples):
-                    axes[0, i].imshow(save_input[i].squeeze(), cmap='gray')
+                    axes[0, i].imshow(save_input[i].squeeze() * 255.0, cmap='gray')
                     axes[0, i].set_title(f'Original {i+1}')
                     axes[0, i].axis('off')
                 
                 # Plot reconstructed images on bottom row
                 for i in range(n_samples):
-                    axes[1, i].imshow(save_output[i].squeeze(), cmap='gray')
+                    axes[1, i].imshow(save_output[i].squeeze() * 255.0, cmap='gray')
                     axes[1, i].set_title(f'Reconstructed {i+1}')
                     axes[1, i].axis('off')
                 
@@ -146,16 +146,16 @@ def train(config_path):
                 
                 # Save and close figure
                 plt.savefig(os.path.join(train_config['task_name'],'vqvae_autoencoder_samples',
-                                      'current_autoencoder_sample_{}.png'.format(img_save_count)))
+                                      'current_autoencoder_sample_{}.pdf'.format(img_save_count)))
                 plt.close(fig)  # Important to prevent memory leaks
                 img_save_count += 1
             
             ######### Optimize Generator ##########
             # L2 Loss
             recon_loss = recon_criterion(output, im) 
-            recon_losses.append(recon_loss.item())
-            recon_loss = recon_loss / acc_steps
-            g_loss = (recon_loss +
+            recon_losses.append(train_config['reconstruction_weight'] * recon_loss.item())
+            recon_loss = train_config['reconstruction_weight'] * recon_loss / acc_steps
+            g_loss = (train_config['reconstruction_weight'] * recon_loss +
                       (train_config['codebook_weight'] * quantize_losses['codebook_loss'] / acc_steps) +
                       (train_config['commitment_beta'] * quantize_losses['commitment_loss'] / acc_steps))
             codebook_losses.append(train_config['codebook_weight'] * quantize_losses['codebook_loss'].item())
@@ -197,6 +197,8 @@ def train(config_path):
             if step_count % acc_steps == 0:
                 optimizer_g.step()
                 optimizer_g.zero_grad()
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # VQVAE
+        # torch.nn.utils.clip_grad_norm_(discriminator.parameters(), max_norm=1.0)  # Discriminator
         optimizer_d.step()
         optimizer_d.zero_grad()
         optimizer_g.step()

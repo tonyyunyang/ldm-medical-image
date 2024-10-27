@@ -118,13 +118,13 @@ class ImageDataset(Dataset):
             with h5py.File(file_path, 'r') as h5_file:
                 if self.stage == 'vqvae':
                     image = torch.from_numpy(h5_file['images'][sample_idx]).unsqueeze(0)
-                    return image
+                    return image/255.0
                 
                 else:  # diffusion stage
                     image = torch.from_numpy(h5_file['images'][sample_idx]).unsqueeze(0)
                     edge = torch.from_numpy(h5_file['edges'][sample_idx])
                     semantic_map = torch.from_numpy(h5_file['semantic_maps'][sample_idx])
-                    return image, edge, semantic_map
+                    return image/255.0, edge, semantic_map
                     
         except Exception as e:
             print(f"Error details for subject {subject_id}, sample {sample_idx}: {str(e)}")

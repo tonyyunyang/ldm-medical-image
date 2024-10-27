@@ -30,32 +30,33 @@ autoencoder_params:
   down_sample : [True, True, True]
   attn_down : [False, False, False]
   norm_channels: 32
-  num_heads: 16
+  num_heads: 8
   num_down_layers : 2
   num_mid_layers : 2
   num_up_layers : 2
 
 
 train_params:
-  seed : 1111
-  task_name: 'test_try'
+  seed : 42
+  task_name: 'test_try2'
   leave_out_subjects: 10
   ldm_batch_size: 16
-  autoencoder_batch_size: 4
-  disc_start: 15000
+  autoencoder_batch_size: 12
+  reconstruction_weight: 1.0
+  disc_start: 35000
   disc_weight: 0.5
-  codebook_weight: 1
-  commitment_beta: 0.2
-  perceptual_weight: 1
+  codebook_weight: 1.0
+  commitment_beta: 0.25
+  perceptual_weight: 1.0
   kl_weight: 0.000005
   ldm_epochs: 100
-  autoencoder_epochs: 40
+  autoencoder_epochs: 90
   num_samples: 1
   num_grid_rows: 1
   ldm_lr: 0.000005
-  autoencoder_lr: 0.00001
-  autoencoder_acc_steps: 1
-  autoencoder_img_save_steps: 64
+  autoencoder_lr: 0.00008
+  autoencoder_acc_steps: 3
+  autoencoder_img_save_steps: 100
   save_latents : False
   vae_latent_dir_name: 'vae_latents'
   vqvae_latent_dir_name: 'vqvae_latents'

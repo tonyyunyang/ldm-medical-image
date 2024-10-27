@@ -61,6 +61,10 @@ class VQVAE(nn.Module):
         
         # Codebook
         self.embedding = nn.Embedding(self.codebook_size, self.z_channels)
+        # self.embedding.weight.data.normal_(0, 0.02)
+        self.embedding.weight.data.uniform_(-1.0 / self.codebook_size, 1.0 / self.codebook_size)
+        # self.embedding = nn.Parameter(torch.randn(self.codebook_size, self.z_channels)
+                                    #   .uniform_(-1/self.codebook_size, 1/self.codebook_size))
         ####################################################
         
         ##################### Decoder ######################
@@ -102,12 +106,14 @@ class VQVAE(nn.Module):
         # Find nearest embedding/codebook vector
         # dist between (B, H*W, C) and (B, K, C) -> (B, H*W, K)
         dist = torch.cdist(x, self.embedding.weight[None, :].repeat((x.size(0), 1, 1)))
+        # dist = torch.cdist(x, self.embedding[None, :].repeat((x.size(0), 1, 1)))
         # (B, H*W)
         min_encoding_indices = torch.argmin(dist, dim=-1)
         
         # Replace encoder output with nearest codebook
         # quant_out -> B*H*W, C
         quant_out = torch.index_select(self.embedding.weight, 0, min_encoding_indices.view(-1))
+        # quant_out = self.embedding[min_encoding_indices.view(-1)]
         
         # x -> B*H*W, C
         x = x.reshape((-1, x.size(-1)))

@@ -1,6 +1,17 @@
 import cv2
 import numpy as np
 
+def scale_data(data):
+    min_val = data.min()
+    max_val = data.max()
+    
+    # Avoid division by zero
+    if max_val == min_val:
+        return np.zeros_like(data, dtype=np.uint8)
+    
+    scaled = ((data - min_val) * (255.0 / (max_val - min_val))).astype(np.uint8)
+    return scaled
+
 def detect_edges(data):
     # Normalize the data
     data_normalized = ((data - data.min()) * (255.0 / (data.max() - data.min()))).astype(np.uint8)
