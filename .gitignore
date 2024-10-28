@@ -3,3 +3,4 @@
 /single_processed_data
 /test_try
 /results_backup
+*.pth
