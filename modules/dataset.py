@@ -42,7 +42,7 @@ def split_subject_data(json_data: Dict, num_test_subjects: int, random_seed: int
     if num_test_subjects >= total_subjects:
         raise ValueError(f"Number of test subjects ({num_test_subjects}) must be less than total subjects ({total_subjects})")
     
-    # Create a deterministic random permutation of subject indices
+    # Create a random permutation of subject indices
     permuted_indices = np.random.permutation(total_subjects)
     
     # Split subjects into training and testing

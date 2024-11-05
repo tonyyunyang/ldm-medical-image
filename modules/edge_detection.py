@@ -19,21 +19,20 @@ def scale_data(data):
 def detect_edges(data):
     # Normalize the data
     data_normalized = ((data - data.min()) * (255.0 / (data.max() - data.min()))).astype(np.uint8)
-
-    # 1. Create a mask for dark regions (adjust threshold as needed)
-    dark_threshold = 10  # Adjust this value to determine what's considered "dark"
     
-    # 2. Apply bilateral filter to reduce noise while preserving edges
+    # Apply bilateral filter to reduce noise while preserving edges
     denoised = cv2.bilateralFilter(data_normalized, d=11, sigmaColor=100, sigmaSpace=100)
     
-    # 3. Enhance contrast using CLAHE
+    # Enhance contrast using CLAHE
     clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8,8))
     enhanced = clahe.apply(denoised)
     
-    # 4. Create mask after enhancement
+    # Create a mask for dark regions (adjust threshold as needed)
+    dark_threshold = 10
+    # Create mask after enhancement
     mask = (enhanced > dark_threshold).astype(np.uint8)
     
-    # 5. Apply Canny with automatic threshold calculation
+    # Apply Canny with automatic threshold calculation
     enhanced_flat = enhanced.flatten()
     mask_flat = mask.flatten()
     median = np.median(enhanced_flat[mask_flat > 0])
@@ -43,9 +42,10 @@ def detect_edges(data):
     upper = int(min(255, (1.0 + sigma) * median))
     edges_advanced = cv2.Canny(enhanced, lower, upper)
     
-    # 6. Apply mask to remove edges in dark regions
+    # Apply mask to remove edges in dark regions
     edges_advanced = edges_advanced * mask
 
+    # Normalize to 0-1
     edges_advanced = edges_advanced / 255
     
     return edges_advanced
@@ -63,7 +63,7 @@ def scale_semantic_map(data: np.ndarray, target_resolution: tuple) -> np.ndarray
     if len(data.shape) == 3:
             zoom_factors = (target_resolution[0] / data.shape[0],
                         target_resolution[1] / data.shape[1],
-                        1)  # Don't resize the channel dimension
+                        1)  # Not resizing the channel dimension
     elif len(data.shape) == 2:
         zoom_factors = (target_resolution[0] / data.shape[0],
                     target_resolution[1] / data.shape[1])
@@ -81,3 +81,26 @@ def scale_semantic_map(data: np.ndarray, target_resolution: tuple) -> np.ndarray
         raise ValueError(f"After quantization, data contains {len(unique_values)} unique values. Expected no more than 4.")
     
     return resized_data
+
+
+def remap_labels(label_data):
+    """
+    Remaps label values according to the following scheme:
+    - 0 remains 0
+    - 104 becomes 1
+    - 100 becomes 2
+    - 105 becomes 3
+    - all other values become 0
+    
+    Args:
+        label_data: numpy array containing the original label values
+        
+    Returns:
+        numpy array with remapped values
+    """
+    remapped = np.zeros_like(label_data)
+    remapped[label_data == 104] = 1
+    remapped[label_data == 100] = 2
+    remapped[label_data == 105] = 3
+    print(np.unique(remapped))
+    return remapped

@@ -5,3 +5,4 @@
 /results_backup
 *.pth
 *.pdf
+/phantom_data
