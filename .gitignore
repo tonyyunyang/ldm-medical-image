@@ -6,3 +6,5 @@
 *.pth
 *.pdf
 /phantom_data
+/test2
+*.png

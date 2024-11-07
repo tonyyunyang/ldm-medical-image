@@ -1,5 +1,5 @@
 dataset_params:
-  im_path: 'processed_data/'
+  im_path: 'processed_data/autoencoder2'
   im_channels : 1
   im_size : 256
   name: 'medical_image'
@@ -25,7 +25,7 @@ ldm_params:
     condition_types: [ 'image' ]
     image_condition_config:
       image_condition_input_channels: 5
-      image_condition_output_channels: 1
+      image_condition_output_channels: 2
       image_condition_h : 256
       image_condition_w : 256
       cond_drop_prob: 0.1
@@ -47,7 +47,7 @@ autoencoder_params:
 
 train_params:
   seed : 42
-  task_name: 'test_try'
+  task_name: 'test2'
   leave_out_subjects: 10
   ldm_batch_size: 36
   autoencoder_batch_size: 12
@@ -58,8 +58,8 @@ train_params:
   commitment_beta: 0.2
   perceptual_weight: 1.0
   kl_weight: 0.000005
-  ldm_epochs: 1000
-  autoencoder_epochs: 120
+  ldm_epochs: 320
+  autoencoder_epochs: 150
   num_samples: 1
   num_grid_rows: 1
   ldm_lr: 0.00008

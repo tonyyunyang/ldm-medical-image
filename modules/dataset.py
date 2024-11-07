@@ -22,6 +22,8 @@ def read_json_file(file_path):
 def split_subject_data(json_data: Dict, num_test_subjects: int, random_seed: int = 42) -> Tuple[List[Tuple[str, int]], List[Tuple[str, int]]]:
     """
     Splits subjects into training and testing sets and creates indexed samples for each.
+    Subject '361' is always included in the training set if present.
+    Total number of subjects must be exactly 360 (excluding '361' if present).
     
     Args:
         json_data (Dict): The JSON data containing subject information
@@ -31,16 +33,30 @@ def split_subject_data(json_data: Dict, num_test_subjects: int, random_seed: int
     Returns:
         Tuple[List[Tuple[str, int]], List[Tuple[str, int]]]: Two lists of (subject_id, sample_index) tuples
             for training and testing sets respectively
+            
+    Raises:
+        ValueError: If total number of subjects (excluding '361') is not exactly 360
+                   or if num_test_subjects is invalid
     """
     # Set random seed for reproducibility
     np.random.seed(random_seed)
     
     # Get all subject IDs
     all_subjects = sorted(list(json_data.keys()))
+    
+    # Handle subject '361' specially
+    has_361 = '361' in all_subjects
+    if has_361:
+        print("Subject '361' found. Excluding from test set.")
+        all_subjects.remove('361')
+    
+    # Check total subjects is exactly 360
     total_subjects = len(all_subjects)
+    if total_subjects != 360:
+        raise ValueError(f"Total number of subjects (excluding '361') must be exactly 360, but got {total_subjects}")
     
     if num_test_subjects >= total_subjects:
-        raise ValueError(f"Number of test subjects ({num_test_subjects}) must be less than total subjects ({total_subjects})")
+        raise ValueError(f"Number of test subjects ({num_test_subjects}) must be less than total subjects (360)")
     
     # Create a random permutation of subject indices
     permuted_indices = np.random.permutation(total_subjects)
@@ -52,6 +68,10 @@ def split_subject_data(json_data: Dict, num_test_subjects: int, random_seed: int
     # Get subject IDs for each set
     test_subjects = [all_subjects[i] for i in test_indices]
     train_subjects = [all_subjects[i] for i in train_indices]
+    
+    # Add subject '361' to training set if it exists
+    if has_361:
+        train_subjects.append('361')
     
     # Create training set tuples
     train_tuples = []
@@ -68,6 +88,30 @@ def split_subject_data(json_data: Dict, num_test_subjects: int, random_seed: int
             test_tuples.append((subject_id, sample_idx))
     
     return train_tuples, test_tuples
+
+
+def get_phantom_data(json_data: Dict) -> List[Tuple[str, int]]:
+    """
+    Extracts all samples from subject '361' (phantom data).
+    
+    Args:
+        json_data (Dict): The JSON data containing subject information
+        
+    Returns:
+        List[Tuple[str, int]]: List of (subject_id, sample_index) tuples for subject '361'
+            
+    Raises:
+        KeyError: If subject '361' is not present in the data
+    """
+    if '361' not in json_data:
+        raise KeyError("Subject '361' not found in the data")
+    
+    phantom_tuples = []
+    num_samples = json_data['361']['num_samples']
+    for sample_idx in range(num_samples):
+        phantom_tuples.append(('361', sample_idx))
+    
+    return phantom_tuples
 
 
 class ImageDataset(Dataset):
